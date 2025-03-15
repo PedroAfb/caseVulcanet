@@ -1,6 +1,7 @@
 import cmd
 from call_center import CallCenter
 
+
 class CommandInterpreter(cmd.Cmd):
     def __init__(self):
         super().__init__()
@@ -18,5 +19,6 @@ class CommandInterpreter(cmd.Cmd):
     def do_hangup(self, call_id):
         self.call_center.hangup(call_id)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     CommandInterpreter().cmdloop()

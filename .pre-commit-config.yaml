@@ -1,0 +1,18 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0  # Versão mais recente no momento
+    hooks:
+      - id: trailing-whitespace  # Remove espaços em branco no final das linhas
+      - id: end-of-file-fixer     # Garante uma linha em branco no final do arquivo
+      - id: check-yaml            # Valida arquivos YAML
+      - id: check-merge-conflict  # Verifica se há conflitos do Git não resolvidos
+
+  - repo: https://github.com/psf/black
+    rev: 24.3.0  # Certifique-se de pegar a versão mais recente
+    hooks:
+      - id: black  # Formata o código automaticamente
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8  # Verifica problemas no código (lint)
