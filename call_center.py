@@ -9,7 +9,6 @@ NOT_ANSWERED = False
 
 class CallCenter():
     def __init__(self, operators=[Operator("A"), Operator("B")]):
-        super().__init__()
         self.operators = operators
         self.queue_calls = []
         self.active_calls = dict()

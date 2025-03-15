@@ -3,6 +3,7 @@ from call_center import CallCenter
 
 class CommandInterpreter(cmd.Cmd):
     def __init__(self):
+        super().__init__()
         self.call_center = CallCenter()
 
     def do_call(self, call_id):
@@ -18,4 +19,4 @@ class CommandInterpreter(cmd.Cmd):
         self.call_center.hangup(call_id)
 
 if __name__ == '__main__':
-    CommandInterpreter.cmdloop()
+    CommandInterpreter().cmdloop()
