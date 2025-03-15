@@ -1,4 +1,3 @@
-import cmd
 
 class Operator:
     def __init__(self, id):
@@ -8,7 +7,7 @@ class Operator:
 ANSWERED = True
 NOT_ANSWERED = False
 
-class CallCenter(cmd.Cmd):
+class CallCenter():
     def __init__(self, operators=[Operator("A"), Operator("B")]):
         super().__init__()
         self.operators = operators
@@ -32,7 +31,7 @@ class CallCenter(cmd.Cmd):
                     return
     
 
-    def do_call(self, call_id):
+    def call(self, call_id):
         print("Call", call_id, "received")
 
         for operator in self.operators:
@@ -46,14 +45,14 @@ class CallCenter(cmd.Cmd):
         print("Call", call_id, "waiting in queue")
 
 
-    def do_answer(self, operator_id):
+    def answer(self, operator_id):
         call_id, operator = self.get_call_id(operator_id)
         self.active_calls[call_id] = (ANSWERED, operator)
         print("Call", call_id, "answered by operator", operator_id)
         operator.status = "busy"
 
 
-    def do_reject(self, operator_id):
+    def reject(self, operator_id):
         call_id, operator = self.get_call_id(operator_id)
         operator.status = "available"
         print("Call", call_id, "rejected by operator", operator.id)
@@ -62,7 +61,7 @@ class CallCenter(cmd.Cmd):
         self.verify_operators()
 
 
-    def do_hangup(self, call_id):
+    def hangup(self, call_id):
         if call_id in self.active_calls and self.active_calls[call_id][0] == ANSWERED:
             _, operator = self.active_calls[call_id]
             del self.active_calls[call_id]
@@ -79,7 +78,3 @@ class CallCenter(cmd.Cmd):
                 operator.status = "available"
                 del self.active_calls[call_id]
                 self.verify_operators()
-
-
-if __name__ == '__main__':
-    CallCenter().cmdloop()
