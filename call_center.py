@@ -23,7 +23,7 @@ class ServerFactory(SvFactory):
 class Server(Protocol):
     def connectionMade(self):
         print("Connection made, Server")
-        self.call_center = CallCenter()
+        self.call_center = CallCenter(self)
 
     def dataReceived(self, data):
         data_json = json.loads(data.decode())
@@ -43,12 +43,18 @@ class Server(Protocol):
 
         self.transport.write(msg_json.encode())
 
+    def send_data(self, msg: str):
+        data_json = json.dumps({"response": msg})
+        self.transport.write(data_json.encode())
+
 
 class CallCenter:
-    def __init__(self, operators=[Operator("A"), Operator("B")]):
+    def __init__(self, server, operators=[Operator("A"), Operator("B")]):
         self.operators = operators
         self.queue_calls = []
         self.active_calls = dict()
+        self.timeout = dict()
+        self.server = server
 
     def get_call_id(self, operator_id):
         for call_id, (_, operator) in self.active_calls.items():
@@ -63,6 +69,7 @@ class CallCenter:
                     call_id = self.queue_calls.pop(0)
                     operator.status = "ringing"
                     self.active_calls[call_id] = (NOT_ANSWERED, operator)
+                    self.timeout[call_id] = reactor.callLater(10, self.hangup, call_id)
                     return (
                         "Call "
                         + call_id
@@ -80,6 +87,7 @@ class CallCenter:
                 msg += "Call " + call_id + " ringing for operator " + operator.id + "\n"
                 operator.status = "ringing"
                 self.active_calls[call_id] = (NOT_ANSWERED, operator)
+                self.timeout[call_id] = reactor.callLater(10, self.hangup, call_id)
                 return msg
 
         self.queue_calls.append(call_id)
@@ -87,20 +95,30 @@ class CallCenter:
         return msg
 
     def answer(self, operator_id):
-        call_id, operator = self.get_call_id(operator_id)
-        self.active_calls[call_id] = (ANSWERED, operator)
-        operator.status = "busy"
-        msg = "Call " + call_id + " answered by operator " + operator_id + "\n"
-        return msg
+        try:
+            call_id, operator = self.get_call_id(operator_id)
+            self.active_calls[call_id] = (ANSWERED, operator)
+            operator.status = "busy"
+            msg = "Call " + call_id + " answered by operator " + operator_id + "\n"
+            self.timeout[call_id].cancel()
+            del self.timeout[call_id]
+            return msg
+        except:
+            pass
 
     def reject(self, operator_id):
-        call_id, operator = self.get_call_id(operator_id)
-        operator.status = "available"
-        del self.active_calls[call_id]
-        self.queue_calls.append(call_id)
-        msg = "Call " + call_id + " rejected by operator " + operator_id + "\n"
-        msg += self.verify_operators()
-        return msg
+        try:
+            call_id, operator = self.get_call_id(operator_id)
+            operator.status = "available"
+            del self.active_calls[call_id]
+            self.queue_calls.append(call_id)
+            msg = "Call " + call_id + " rejected by operator " + operator_id + "\n"
+            msg += self.verify_operators()
+            self.timeout[call_id].cancel()
+            del self.timeout[call_id]
+            return msg
+        except:
+            pass
 
     def hangup(self, call_id):
         msg = ""
@@ -117,7 +135,20 @@ class CallCenter:
             )
             msg += self.verify_operators()
             return msg
-        else:
+
+        elif call_id in self.timeout.keys():
+            _, operator = self.active_calls[call_id]
+            operator.status = "available"
+            del self.active_calls[call_id]
+
+            msg = "Call " + call_id + " ignored by operator " + operator.id + "\n"
+            msg += self.verify_operators()
+            del self.timeout[call_id]
+
+            self.server.send_data(msg)
+            return
+
+        elif call_id in self.active_calls or call_id in self.queue_calls:
             msg = "Call " + call_id + " missed\n"
             if call_id in self.queue_calls:
                 self.queue_calls.remove(call_id)
@@ -128,6 +159,8 @@ class CallCenter:
                 del self.active_calls[call_id]
                 msg += self.verify_operators()
             return msg
+
+        return "Call " + call_id + " not found\n"
 
 
 if __name__ == "__main__":
