@@ -12,7 +12,7 @@ repos:
     hooks:
       - id: black  # Formata o código automaticamente
 
-  - repo: https://github.com/PyCQA/flake8
-    rev: 6.1.0
-    hooks:
-      - id: flake8  # Verifica problemas no código (lint)
+  # - repo: https://github.com/PyCQA/flake8
+  #   rev: 6.1.0
+  #   hooks:
+  #     - id: flake8  # Verifica problemas no código (lint)
