@@ -2,6 +2,7 @@ from twisted.internet import reactor
 from twisted.internet.protocol import Protocol
 from twisted.internet.protocol import ServerFactory as SvFactory
 from twisted.internet.endpoints import TCP4ServerEndpoint
+import json
 
 
 class Operator:
@@ -25,19 +26,22 @@ class Server(Protocol):
         self.call_center = CallCenter()
 
     def dataReceived(self, data):
-        data = data.decode()
-        data = data.split()
-        command = data[0]
-        if command == "call":
-            msg = self.call_center.call(data[1])
-        elif command == "answer":
-            msg = self.call_center.answer(data[1])
-        elif command == "reject":
-            msg = self.call_center.reject(data[1])
-        elif command == "hangup":
-            msg = self.call_center.hangup(data[1])
+        data_json = json.loads(data.decode())
+        command = data_json["command"]
+        id = data_json["id"]
 
-        self.transport.write(msg.encode())
+        if command == "call":
+            msg = self.call_center.call(id)
+        elif command == "answer":
+            msg = self.call_center.answer(id)
+        elif command == "reject":
+            msg = self.call_center.reject(id)
+        elif command == "hangup":
+            msg = self.call_center.hangup(id)
+
+        msg_json = json.dumps({"response": msg})
+
+        self.transport.write(msg_json.encode())
 
 
 class CallCenter:

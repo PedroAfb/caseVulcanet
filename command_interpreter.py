@@ -3,6 +3,7 @@ from twisted.internet import reactor
 from twisted.internet.protocol import Protocol
 from twisted.internet.protocol import ClientFactory as CLFactory
 from twisted.internet.endpoints import TCP4ClientEndpoint
+import json
 
 
 class ClientFactory(CLFactory):
@@ -16,11 +17,12 @@ class Client(Protocol):
         reactor.callInThread(CommandInterpreter(self).cmdloop)
 
     def dataReceived(self, data):
-        data = data.decode()
-        print(data)
+        data_json = json.loads(data.decode())
+        print(data_json["response"])
 
-    def send_data(self, data):
-        self.transport.write(data.encode())
+    def send_data(self, data: list):
+        data_json = json.dumps({"command": data[0], "id": data[1]})
+        self.transport.write(data_json.encode())
 
 
 class CommandInterpreter(cmd.Cmd):
@@ -29,16 +31,16 @@ class CommandInterpreter(cmd.Cmd):
         self.client = client
 
     def do_call(self, call_id):
-        self.client.send_data(f"call {call_id}")
+        self.client.send_data(["call", call_id])
 
     def do_answer(self, operator_id):
-        self.client.send_data(f"answer {operator_id}")
+        self.client.send_data(["answer", operator_id])
 
     def do_reject(self, operator_id):
-        self.client.send_data(f"reject {operator_id}")
+        self.client.send_data(["reject", operator_id])
 
     def do_hangup(self, call_id):
-        self.client.send_data(f"hangup {call_id}")
+        self.client.send_data(["hangup", call_id])
 
     def do_exit(self, _):
         reactor.stop()
