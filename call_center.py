@@ -69,7 +69,7 @@ class CallCenter:
                     call_id = self.queue_calls.pop(0)
                     operator.status = "ringing"
                     self.active_calls[call_id] = (NOT_ANSWERED, operator)
-                    self.timeout[call_id] = reactor.callLater(10, self.hangup, call_id)
+                    self.timeout[call_id] = reactor.callLater(10, self.ignored, call_id)
                     return (
                         "Call "
                         + call_id
@@ -87,7 +87,7 @@ class CallCenter:
                 msg += "Call " + call_id + " ringing for operator " + operator.id + "\n"
                 operator.status = "ringing"
                 self.active_calls[call_id] = (NOT_ANSWERED, operator)
-                self.timeout[call_id] = reactor.callLater(10, self.hangup, call_id)
+                self.timeout[call_id] = reactor.callLater(10, self.ignored, call_id)
                 return msg
 
         self.queue_calls.append(call_id)
@@ -111,14 +111,30 @@ class CallCenter:
             call_id, operator = self.get_call_id(operator_id)
             operator.status = "available"
             del self.active_calls[call_id]
-            self.queue_calls.append(call_id)
+            print(self.queue_calls)
+            self.queue_calls.insert(0, call_id)
             msg = "Call " + call_id + " rejected by operator " + operator_id + "\n"
-            msg += self.verify_operators()
             self.timeout[call_id].cancel()
             del self.timeout[call_id]
+            msg += self.verify_operators()
             return msg
         except:
             pass
+
+    def ignored(self, call_id):
+        _, operator = self.active_calls[call_id]
+        print(operator.id)
+        operator.status = "available"
+        del self.active_calls[call_id]
+        self.queue_calls.insert(0, call_id)
+        self.timeout[call_id].cancel()
+        del self.timeout[call_id]
+
+        msg = "Call " + call_id + " ignored by operator " + operator.id + "\n"
+        msg += self.verify_operators()
+
+        self.server.send_data(msg)
+        return
 
     def hangup(self, call_id):
         msg = ""
