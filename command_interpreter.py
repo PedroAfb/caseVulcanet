@@ -17,8 +17,15 @@ class Client(Protocol):
         reactor.callInThread(CommandInterpreter(self).cmdloop)
 
     def dataReceived(self, data):
-        data_json = json.loads(data.decode())
-        print(data_json["response"])
+        data_list = data.decode().split("}")
+        if len(data_list) > 1:
+            for i in range(len(data_list) - 1):
+                json_obj = data_list[i] + "}"
+                data_json = json.loads(json_obj)
+                print(data_json["response"])
+        else:
+            data_json = json.loads(data.decode())
+            print(data_json["response"])
 
     def send_data(self, data: list):
         data_json = json.dumps({"command": data[0], "id": data[1]})
