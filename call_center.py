@@ -16,14 +16,19 @@ NOT_ANSWERED = False
 
 
 class ServerFactory(SvFactory):
+    def __init__(self):
+        self.call_center = CallCenter()
+
     def buildProtocol(self, addr):
-        return Server()
+        return Server(self.call_center)
 
 
 class Server(Protocol):
+    def __init__(self, call_center):
+        self.call_center = call_center
+
     def connectionMade(self):
         print("Connection made, Server")
-        self.call_center = CallCenter(self)
 
     def dataReceived(self, data):
         data_json = json.loads(data.decode())
@@ -60,7 +65,7 @@ class CallCenter:
         for call_id, (_, operator) in self.active_calls.items():
             if operator.id == operator_id:
                 return call_id, operator
-        return None
+        return None, None
 
     def verify_operators(self):
         if self.queue_calls:
