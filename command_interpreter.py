@@ -31,6 +31,11 @@ class Client(Protocol):
         data_json = json.dumps({"command": data[0], "id": data[1]})
         self.transport.write(data_json.encode())
 
+    def close_connection(self):
+        print("Closing connection")
+        self.transport.loseConnection()
+        reactor.callFromThread(reactor.stop)
+
 
 class CommandInterpreter(cmd.Cmd):
     def __init__(self, client):
@@ -41,9 +46,11 @@ class CommandInterpreter(cmd.Cmd):
         if not call_id:
             print("Call ID is required")
             return
-        if not call_id.isdigit():
+
+        elif not call_id.isdigit():
             print("Call ID must be a number")
             return
+
         self.client.send_data(["call", call_id])
 
     def do_answer(self, operator_id: str):
@@ -51,11 +58,19 @@ class CommandInterpreter(cmd.Cmd):
             print("Operator ID is required")
             return
 
+        elif operator_id.isdigit():
+            print("Operator ID must be a letter (A-Z)")
+            return
+
         self.client.send_data(["answer", operator_id])
 
     def do_reject(self, operator_id: str):
         if not operator_id:
             print("Operator ID is required")
+            return
+
+        elif operator_id.isdigit():
+            print("Operator ID must be a letter (A-Z)")
             return
 
         self.client.send_data(["reject", operator_id])
@@ -70,7 +85,7 @@ class CommandInterpreter(cmd.Cmd):
         self.client.send_data(["hangup", call_id])
 
     def do_exit(self, _):
-        reactor.stop()
+        self.client.close_connection()
         return True
 
 

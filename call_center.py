@@ -33,7 +33,7 @@ class Server(Protocol):
         self.call_center = call_center
 
     def connectionMade(self):
-        print("Connection made, Server")
+        print("Connection made (server saying)")
 
     def dataReceived(self, data):
         data_json = json.loads(data.decode())
@@ -56,6 +56,10 @@ class Server(Protocol):
     def send_data(self, msg: str):
         data_json = json.dumps({"response": msg})
         self.transport.write(data_json.encode())
+
+    def connectionLost(self, reason=...):
+        print("Connection lost")
+        reactor.stop()
 
 
 class CallCenter:
@@ -90,19 +94,28 @@ class CallCenter:
         return ""
 
     def call(self, call_id):
-        msg = "Call " + call_id + " received\n"
+        if call_id in self.active_calls or call_id in self.queue_calls:
+            return "Call " + call_id + " already in progress\n"
+        else:
+            msg = "Call " + call_id + " received\n"
 
-        for operator in self.operators:
-            if operator.status == "available":
-                msg += "Call " + call_id + " ringing for operator " + operator.id + "\n"
-                operator.status = "ringing"
-                self.active_calls[call_id] = (NOT_ANSWERED, operator)
-                self.timeout[call_id] = reactor.callLater(10, self.ignored, call_id)
-                return msg
+            for operator in self.operators:
+                if operator.status == "available":
+                    msg += (
+                        "Call "
+                        + call_id
+                        + " ringing for operator "
+                        + operator.id
+                        + "\n"
+                    )
+                    operator.status = "ringing"
+                    self.active_calls[call_id] = (NOT_ANSWERED, operator)
+                    self.timeout[call_id] = reactor.callLater(10, self.ignored, call_id)
+                    return msg
 
-        self.queue_calls.append(call_id)
-        msg += "Call " + call_id + " waiting in queue\n"
-        return msg
+            self.queue_calls.append(call_id)
+            msg += "Call " + call_id + " waiting in queue\n"
+            return msg
 
     def answer(self, operator_id):
         call_id, operator = self.get_call_id(operator_id)
@@ -120,6 +133,15 @@ class CallCenter:
         call_id, operator = self.get_call_id(operator_id)
         if not call_id and not operator:
             return "No calls ringing for operator " + operator_id + "\n"
+
+        elif self.active_calls[call_id][0] == ANSWERED:
+            return (
+                "Call "
+                + call_id
+                + " already answered by operator "
+                + operator_id
+                + "\n"
+            )
 
         operator.status = "available"
         del self.active_calls[call_id]
@@ -159,18 +181,6 @@ class CallCenter:
             )
             msg += self.verify_operators()
             return msg
-
-        # elif call_id in self.timeout.keys():
-        #     _, operator = self.active_calls[call_id]
-        #     operator.status = "available"
-        #     del self.active_calls[call_id]
-
-        #     msg = "Call " + call_id + " ignored by operator " + operator.id + "\n"
-        #     msg += self.verify_operators()
-        #     del self.timeout[call_id]
-
-        #     self.server.send_data(msg)
-        #     return
 
         elif call_id in self.active_calls or call_id in self.queue_calls:
             msg = "Call " + call_id + " missed\n"
