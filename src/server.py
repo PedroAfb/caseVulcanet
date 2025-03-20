@@ -27,9 +27,9 @@ class Server(Protocol):
         print("Connection made (server saying)")
 
     def dataReceived(self, data):
-        data_json = json.loads(data.decode())
-        command = data_json["command"]
-        id = data_json["id"]
+        data_dict = json.loads(data.decode())
+        command = data_dict["command"]
+        id = data_dict["id"]
 
         if command == "call":
             msg = self.call_center.call(id)
