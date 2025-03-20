@@ -21,11 +21,12 @@ class Client(Protocol):
         if len(data_list) > 1:
             for i in range(len(data_list) - 1):
                 json_obj = data_list[i] + "}"
-                data_json = json.loads(json_obj)
-                print(data_json["response"])
+                data_dict = json.loads(json_obj)
+                print(data_dict["response"])
+
         else:
-            data_json = json.loads(data.decode())
-            print(data_json["response"])
+            data_dict = json.loads(data.decode())
+            print(data_dict["response"])
 
     def send_data(self, data: list):
         data_json = json.dumps({"command": data[0], "id": data[1]})
