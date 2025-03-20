@@ -1,2 +1,5 @@
 input_test.txt
 vulcanet/
+**/__pycache__/
+teste_cliente.py
+teste_server.py
